@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify
-
 import db_handler as dh
 
 app = Flask(__name__)
@@ -15,6 +14,10 @@ def drop_all():
     
 @app.route("/<category>/add", methods=['POST'])
 def add_entity(category):
+    print(request.__dict__)
+    print(request.get_json())
+    #file_=request.files[0]
+    #file_.save('temp')
     result = dh.add_to_db(category, request)
     return result
     
