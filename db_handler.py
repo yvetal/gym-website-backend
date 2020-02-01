@@ -4,7 +4,15 @@ import json
 import base64
 import collections
 from bson.objectid import ObjectId
-myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+try:
+    myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+    myclient.server_info() # force connection on a request as the
+                         # connect=True parameter of MongoClient seems
+                         # to be useless here 
+except pymongo.errors.ServerSelectionTimeoutError as err:
+    # do whatever you need
+    print(err)
+    exit(0)
 mydb = myclient["gym_db_test_0"]
 fs = gridfs.GridFS(mydb)
 #mycol = mydb["customers"]
@@ -31,13 +39,13 @@ def add_to_db(category, request):
     f=request.files.to_dict()
     for key in f:
         details[key] = { 'type': 'file', 'value': base64.b64encode(f[key].read())}
-    print(details)
+    
     details['id']=get_new_id(category)
     
     x = mycol.insert_one(details)
     add_to_history(category, details)
     
-    return str(x.inserted_id)
+    return str(details['id'])
     
 #def process_entity(entity):
 #    for entry in entity:
@@ -114,11 +122,7 @@ def edit_entity(category, id_val, request):
         details[key] = { 'type': 'string', 'value': contents_temp[key] }
     f=request.files.to_dict()
     for key in f:
-        content=f[key].read()
-        a=fs.put(content)
-        b=fs.put(fs.get(a), filename=key)
-        details[key] = { 'type': 'file', 'value': b }
-        
+        details[key] = { 'type': 'file', 'value': base64.b64encode(f[key].read())}
     mycol.update_one({ 'id' : id_val }, { "$set": details })
     add_to_history(category, details)
     return 'Success'
